@@ -24,7 +24,6 @@ namespace fight_five
         {
             _fighter1 = CreateFighter("1");
             _fighter2 = CreateFighter("2");
-
             СhangeDuplicateNames(_fighter1, _fighter2);
             Fight();
 
@@ -33,57 +32,67 @@ namespace fight_five
 
         private Fighter CreateFighter(string FighterNumber)
         {
-            const string CommandChooseHeavyFighter = "1";
-            const string CommandChooseLightFighter = "2";
-            const string CommandChooseMediumFighter  = "3";
-            const string CommandChooseVampire = "4";
-            const string CommandChooseRobot = "5";
-            const string CommandShowPeculiarities = "6";
+            const string CommandInfo = "info";
+            List<Fighter> fighters = new List<Fighter> { new HeavyFighter(25, 370, 1, 12), new LightFighter(62, 125, 4, 25), new MediumFighter(42, 195, 5, 3, 1.5f), new Vampire(56, 150, 3, 17), new Robot(65, 150, 10, 16, 68, 50) };
             bool isChosen = false;
             Fighter fighter = null;
 
-            while(isChosen == false)
+            while (isChosen == false)
             {
-                Console.Clear();
-                Console.Write($"Выберите {FighterNumber} бойца:\n{CommandChooseHeavyFighter} Непробиваемый Том\n{CommandChooseLightFighter} Молния Джим\n{CommandChooseMediumFighter} Храбрый Рон\n{CommandChooseVampire} Кусака Майкл\n{CommandChooseRobot} Робот\n{CommandShowPeculiarities} Показать Особенности\nНомер: ");
+                Console.WriteLine("Выберите номер бойца:");
+
+                ShowFigters(fighters);
+
+                Console.Write($"Ввдите номер бойца или команду {CommandInfo}: ");
 
                 string input = Console.ReadLine();
 
-                switch (input)
+                if (int.TryParse(input, out int index))
+                { 
+                    if (index >= 0 && index < fighters.Count)
+                    {
+                        fighter = fighters[index];
+                        isChosen = true;
+                    }
+                    else
+                    {
+                        Console.WriteLine("Такого бойца нет");
+                        Console.ReadKey();
+                    }
+                }
+                else
                 {
-                    case CommandChooseHeavyFighter:
-                        fighter = new HeavyFighter(25, 370, 1, 12);
-                        break;
-                    case CommandChooseLightFighter:
-                        fighter = new LightFighter(62, 125, 4, 25);
-                        break;
-                    case CommandChooseMediumFighter:
-                        fighter = new MediumFighter(42, 195, 5, 3, 1.5f);
-                        break;
-                    case CommandChooseVampire:
-                        fighter = new Vampire(56, 150, 3, 17);
-                        break;
-                    case CommandChooseRobot:
-                        fighter = new Robot(65, 150, 10, 16, 68, 50);
-                        break;
-                    case CommandShowPeculiarities:
-                        ShowPeculiarities();
-                        break;
-                    default:
-                        break;
+                    if (input == CommandInfo)
+                    {
+                        Console.Clear();
+
+                        foreach (var element in fighters)
+                        {
+                            element.ShowStats();
+                            Console.WriteLine();
+                        }
+
+                        Console.ReadKey();
+                    }
+                    else
+                    {
+                        Console.WriteLine("Не коректная команда");
+                        Console.ReadKey();
+                    }
                 }
 
-                isChosen = fighter != null;
+                Console.Clear();
             }
 
             return fighter;
         }
 
-        private void ShowPeculiarities()
+        private void ShowFigters(List<Fighter> fighters)
         {
-            Console.Clear();
-            Console.WriteLine("Непробиваемый Том имеет шанс заблокировать весь входящий урон\n\nМолния Джим имеет шанс уклониться от удара соперника\n\nХрабрый Рон каждый 3 удар наносит повышенный урон\n\nКусака Майкл востанавливает часть нанесенного урона\n\nРобот имеет щит, но после потери половины здоровья деградирует");
-            Console.ReadKey();
+            for(int i = 0; i <fighters.Count; i++)
+            {
+                Console.WriteLine($"{i + 1} {fighters[i].Name}");
+            }
         }
 
         private void СhangeDuplicateNames(Fighter fighter1, Fighter fighter2)
@@ -120,7 +129,7 @@ namespace fight_five
             
             while(isFinish == false)
             {
-                if (firstFighter.CheckDie() == false)
+                if (firstFighter.IsDead() == false)
                 {
                     firstFighter.Hit(secondFighter, random);
                 }
@@ -128,10 +137,11 @@ namespace fight_five
                 {
                     isFinish = true;
                     ShowWinner(secondFighter);
+
                     break;
                 }
 
-                if (secondFighter.CheckDie() == false)
+                if (secondFighter.IsDead() == false)
                 {
                     secondFighter.Hit(firstFighter, random);
                 }
@@ -139,6 +149,7 @@ namespace fight_five
                 {
                     isFinish = true;
                     ShowWinner(firstFighter);
+
                     break;
                 }
             }
@@ -167,16 +178,21 @@ namespace fight_five
             MaxDamageMultiplierPercentage = 60;
         }
 
+        public virtual void ShowStats()
+        {
+            Console.Write($"{Name}: {Health} здоровья, {Damage} урона, {Initiative} инициативы. ");
+        }
+
         public virtual void Hit(Fighter enemy, Random random)
         {
             int damage = (int)((float)Damage * (((float)random.Next(MaxDamageMultiplierPercentage + 1) / 100) + 1));
 
             Console.WriteLine($"\n{Name} бьет с силой {damage} урона");
 
-            enemy.GetDamage(damage, random);
+            enemy.HaveDamage(damage, random);
         }
 
-        public virtual void GetDamage(int damage, Random random)
+        public virtual void HaveDamage(int damage, Random random)
         {
             Health -= damage;
 
@@ -186,7 +202,7 @@ namespace fight_five
             Console.WriteLine($"{Name} теряет {damage} здоровья, осталось {Health} здоровья");
         }
 
-        public bool CheckDie()
+        public bool IsDead()
         {
             return Health <= 0;
         }
@@ -200,36 +216,50 @@ namespace fight_five
     class HeavyFighter : Fighter
     {
         private int _chanceToBlockDamage;
+
         public HeavyFighter(int damage, int health, int initiative, int chanceToBliockDamage) : base(damage, health, initiative, "Непробиваемый Том") 
         {
             _chanceToBlockDamage = chanceToBliockDamage;
         }
 
-        public override void GetDamage(int damage, Random random)
+        public override void ShowStats()
+        {
+            base.ShowStats();
+            Console.WriteLine($"Имеет шанс {_chanceToBlockDamage}% заблокировать весь входящий урон.");
+        }
+
+        public override void HaveDamage(int damage, Random random)
         {
             int chance = random.Next(101);
 
             if(chance > _chanceToBlockDamage)
-                base.GetDamage(damage, random);
+                base.HaveDamage(damage, random);
             else
-                Console.WriteLine($"{Name} не почувствовал удара, осталось {Health} здоровья");
+                Console.WriteLine($"{Name} не заметил удара, осталось {Health} здоровья");
         }
     }
 
     class LightFighter : Fighter
     {
         private int _chanceToDodge;
+
         public LightFighter(int damage, int health, int initiative, int chanceToDodge) : base(damage, health, initiative, "Молния Джим")
         {
             _chanceToDodge = chanceToDodge;
         }
 
-        public override void GetDamage(int damage, Random random)
+        public override void ShowStats()
+        {
+            base.ShowStats();
+            Console.WriteLine($"Имеет шанс {_chanceToDodge}% увернуться от удара.");
+        }
+
+        public override void HaveDamage(int damage, Random random)
         {
             int chance = random.Next(101);
 
             if (chance > _chanceToDodge)
-                base.GetDamage(damage, random);
+                base.HaveDamage(damage, random);
             else
                 Console.WriteLine($"{Name} проворно уклонился от удара, осталось {Health} здоровья");
         }
@@ -240,11 +270,18 @@ namespace fight_five
         private int _hitCount;
         private int _hitCountToCrit;
         private float _critMultiplier;
+
         public MediumFighter(int damage, int health, int initiative, int hitCountToCrit, float critMultiplier) : base(damage, health, initiative, "Храбрый Рон")
         {
             _hitCount = 0;
             _hitCountToCrit = hitCountToCrit;
             _critMultiplier = critMultiplier;
+        }
+
+        public override void ShowStats()
+        {
+            base.ShowStats();
+            Console.WriteLine($"Каждый {_hitCountToCrit} удар наносит повышенный урон.");
         }
 
         public override void Hit(Fighter enemy, Random random)
@@ -258,7 +295,7 @@ namespace fight_five
 
                 Console.WriteLine($"\n{Name} бьет с увеличенной силой {damage} урона");
 
-                enemy.GetDamage(damage, random);
+                enemy.HaveDamage(damage, random);
             }
             else
             {
@@ -271,10 +308,17 @@ namespace fight_five
     {
         private int _healthRecoveryPercentage;
         private int _maxHealth;
+
         public Vampire(int damage, int health, int initiative, int healthRecoveryPercent) : base(damage, health, initiative, "Кусака Майкл")
         {
             _healthRecoveryPercentage = healthRecoveryPercent;
             _maxHealth = health;
+        }
+
+        public override void ShowStats()
+        {
+            base.ShowStats();
+            Console.WriteLine($"Востанавливает {_healthRecoveryPercentage}% здоровья от нанесенного урона.");
         }
 
         public override void Hit(Fighter enemy, Random random)
@@ -294,7 +338,7 @@ namespace fight_five
             else
                 Console.WriteLine();
 
-            enemy.GetDamage(damage, random);
+            enemy.HaveDamage(damage, random);
         }
     }
 
@@ -304,12 +348,19 @@ namespace fight_five
         private int _degradationBorder;
         private int _shield;
         private int _maxHealth;
+
         public Robot(int damage, int health, int initiative, int shield, int degradationPercentage, int degradationLimitPercentage) : base(damage, health, initiative, "Робот")
         {
             _shield = shield;
             _degradationPercentage = degradationPercentage;
             _maxHealth = health;
             _degradationBorder = (int)((float)_maxHealth * ((float)degradationLimitPercentage / 100));
+        }
+
+        public override void ShowStats()
+        {
+            base.ShowStats();
+            Console.WriteLine($"Имеет щит, поглащающий {_shield}% урона, но после потери части здоровья деградирует.");
         }
 
         public override void Hit(Fighter enemy, Random random)
@@ -320,7 +371,7 @@ namespace fight_five
                 int damage = (int)((float)Damage * (((float)random.Next(MaxDamageMultiplierPercentage + 1) / 100) + 1) * (1 - ((float)_degradationPercentage / 100)));
                 Console.WriteLine($"\n{Name} бьет с уменьшенной силой {damage} урона");
 
-                enemy.GetDamage(damage, random);
+                enemy.HaveDamage(damage, random);
             }
             else
             {
@@ -328,11 +379,11 @@ namespace fight_five
             }
         }
 
-        public override void GetDamage(int damage, Random random)
+        public override void HaveDamage(int damage, Random random)
         {
             if(Health <= _degradationBorder)
             {
-                base.GetDamage(damage, random);
+                base.HaveDamage(damage, random);
             }
             else
             {
